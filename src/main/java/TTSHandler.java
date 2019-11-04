@@ -169,7 +169,7 @@ class gotoError {
     }
 }
 
-class getLua extends AnAction { // CTRL-SHIFT-L
+class getLua extends AnAction { // CTRL-SHIFT-X
     private getLua() {
         super("Get Lua Scripts");
     }
