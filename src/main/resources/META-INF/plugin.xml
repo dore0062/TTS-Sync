@@ -1,0 +1,43 @@
+<idea-plugin>
+    <id>com.tts.ttssync</id>
+    <name>TTS Sync</name>
+    <vendor email="skeevyskeeve@gmail.com" url="http://www.yourcompany.com">TTSSync</vendor>
+
+    <description>
+      This is an example plugin while I figure out how to make it sync with TTS
+    </description>
+
+    <!-- please see http://www.jetbrains.org/intellij/sdk/docs/basics/getting_started/plugin_compatibility.html
+         on how to target different products -->
+    <!-- uncomment to enable plugin in all products
+    <depends>com.intellij.modules.lang</depends>
+    -->
+
+    <actions>
+        <group id="org.jetbrains.tutorials.actions.GroupedActions" text="Tabletop Simulator" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="after" relative-to-action="server_start"/>
+            <action class="TTSListener"
+                    id="server_start"
+                    text="Starts a Local Server"
+                    description="Starts a listening server for getting files and info from Tabletop Simulator">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift D"/>
+            </action>
+            <separator/>
+            <action class="getLua"
+                    id="getLua"
+                    text="Gets Files from the Game"
+                    description="Gets scripts from Tabletop Simulator">
+            <keyboard-shortcut keymap="$default" first-keystroke="control shift X"/>
+            </action>
+            <action class="gameSync"
+                    id="gameSync"
+                    text="Saves Synced Files to the Game"
+                    description="Saves synced files to the game">
+                <keyboard-shortcut keymap="$default" first-keystroke="control shift S"/>
+            </action>
+        </group>
+    </actions>
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow id="TTS Objects" anchor="right" factoryClass="propertyFactory"/>
+    </extensions>
+</idea-plugin>
