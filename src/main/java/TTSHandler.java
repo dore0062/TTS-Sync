@@ -11,8 +11,13 @@ import com.intellij.openapi.editor.*;
 import com.intellij.openapi.editor.markup.*;
 import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.fileTypes.StdFileTypes;
+import com.intellij.openapi.module.Module;
+import com.intellij.openapi.module.ModuleManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.roots.ModuleRootManager;
+import com.intellij.openapi.roots.ModuleRootModificationUtil;
+import com.intellij.openapi.vfs.LocalFileSystem;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.psi.PsiDirectory;
 import com.intellij.psi.PsiFile;
@@ -21,12 +26,17 @@ import com.intellij.psi.PsiManager;
 import com.intellij.psi.search.FilenameIndex;
 import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.JBColor;
+import com.intellij.openapi.util.io.FileUtilRt;
 import org.jetbrains.annotations.NotNull;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 class createFile {
     static boolean replace;
     static boolean synced;
+    static boolean temp_created;
     static String filename;
 
     private static boolean noDialogue;
@@ -34,25 +44,55 @@ class createFile {
     private static PsiDirectory dir;
     private static PsiFile[] foundFiles;
 
+    static File createTempDir() {
+        try {
+            File temp = Paths.get(FileUtilRt.getTempDirectory() + "/Tabletop Simulator Lua").toFile();
+            if (! temp.exists()) {
+                return FileUtilRt.createTempDirectory("Tabletop Simulator Lua", "");
+            }
+            else {
+                return temp;
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
     static void newFile(String Name, String FileType, String Text, String GUID, boolean setActive) {
         noDialogue = false;
         Project p = ProjectManager.getInstance().getOpenProjects()[0];
-        final FileEditorManager fileEditorManager = FileEditorManager.getInstance(p);
+        final FileEditorManager fileEditorManager = FileEditorManager.getInstance(p);  // FIXME this is the wrong directory .idea
 
         WriteCommandAction.runWriteCommandAction(p, () -> {
-            VirtualFile folder = p.getProjectFile();
+            File d = createTempDir();
+            assert d != null : "Could not create temporary directory";
+            VirtualFile vdir = LocalFileSystem.getInstance().findFileByIoFile(d);
+            Module module = ModuleManager.getInstance(p).getModules()[0];
 
-            assert folder != null;
-            PsiFile d = PsiManager.getInstance(p).findFile(folder);
-            assert d != null;
-            dir = d.getContainingFile().getContainingDirectory();  // FIXME this is the wrong directory .idea
+            boolean noroot = true;
+            final VirtualFile[] roots = ModuleRootManager.getInstance(module).getContentRoots();
+            for (final VirtualFile contentRoot : roots) {
+                if (contentRoot.getName().equals("Tabletop Simulator Lua")) {
+                    noroot = false;
+                }
+            }
+
+            if (noroot) {
+                ModuleRootModificationUtil.addContentRoot(module, vdir);
+            }
+
+            // Adds temp folder to project TODO find out if you can remove content root on program close? Cleanup on startup?
+
+            PsiDirectory dir = PsiManager.getInstance(p).findDirectory(vdir);
+            assert dir != null : "Directory is null" ;
+
             filename = Name + " " + GUID + "." + FileType;
-
             file = PsiFileFactory.getInstance(p).createFileFromText(filename, StdFileTypes.JAVA, Text); // Extension overwrites fileType
             foundFiles = FilenameIndex.getFilesByName(p, filename, GlobalSearchScope.allScope(p)); // Search the entire project if the file exists
 
             if (foundFiles.length <= 0) { // Object does not exist
-                    PsiFile newFile = (PsiFile) dir.add(file);
+                PsiFile newFile = (PsiFile) dir.add(file);
                     gameSync.syncedFiles.putIfAbsent(filename, GUID);
                     if (setActive) fileEditorManager.openFile(newFile.getVirtualFile(), true);
                     noDialogue = true;
@@ -122,12 +162,11 @@ class gotoError {
                 String errorText = Text + "<";
                 Notification notification = new Notification(GUID, errorPrefix, errorText, NotificationType.ERROR);
 
-                int finalColumn = column;
                 int finalColumn2 = column2;
                 notification.addAction(new NotificationAction("Go to Error") {
                     @Override
                     public void actionPerformed(@NotNull AnActionEvent e, @NotNull Notification notification) {
-                        createLink(foundFiles, fileEditorManager, p, lineNumber, finalColumn, finalColumn2);
+                        createLink(foundFiles, fileEditorManager, p, lineNumber, column, finalColumn2);
                     }
                 });
 
