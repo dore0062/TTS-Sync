@@ -106,7 +106,7 @@ class serverOpen extends Thread {
 
                     case 2: // Print/Debug message TODO debug
                         String message = jObject.get("message").getAsString();
-                        Notifications.Bus.notify(new Notification("message", "TTS Message", message, NotificationType.INFORMATION));
+                        Notifications.Bus.notify(new Notification("message", "Tabletop Simulator Message", message, NotificationType.INFORMATION));
                         break;
 
                     case 3: // Error message TODO add XML / test XML
@@ -167,8 +167,8 @@ class sendToClient extends Thread {
         try {
             socket = new Socket("localhost",39999);
         } catch (IOException e) {
-            Notifications.Bus.notify(new Notification("sync-error", "Port already in use",
-                    "The port 39999 is already in use, a server may already be opened, the last connection may have failed. If this issue occurs frequently, please report it on Github.", NotificationType.ERROR));
+            Notifications.Bus.notify(new Notification("sync-error", "Connection failed",
+                    "Could not connect to localhost:39999, a server may already be opened, the last connection may have failed. If this issue occurs frequently, please report it on Github.", NotificationType.ERROR));
             return;
         }
 

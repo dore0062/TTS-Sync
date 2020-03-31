@@ -28,25 +28,28 @@ import com.intellij.psi.search.GlobalSearchScope;
 import com.intellij.ui.JBColor;
 import com.intellij.openapi.util.io.FileUtilRt;
 import org.jetbrains.annotations.NotNull;
+
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
 class createFile {
     static boolean replace;
     static boolean synced;
-    static boolean temp_created;
     static String filename;
 
     private static boolean noDialogue;
     private static PsiFile file;
-    private static PsiDirectory dir;
+    public static PsiDirectory dir;
     private static PsiFile[] foundFiles;
 
     static File createTempDir() {
         try {
             File temp = Paths.get(FileUtilRt.getTempDirectory() + "/Tabletop Simulator Lua").toFile();
+
             if (! temp.exists()) {
                 return FileUtilRt.createTempDirectory("Tabletop Simulator Lua", "");
             }
@@ -59,16 +62,34 @@ class createFile {
         }
     }
 
+      static void luaBundle() throws IOException {
+        String r = new GetPath().getPluginVirtualFile("luabundler.exe");
+        System.out.print(r);
+        Process p = new ProcessBuilder(r,"bundle","--help").start();
+        String line;
+        BufferedReader input = new BufferedReader(new InputStreamReader(p.getInputStream()));
+          while ((line = input.readLine()) != null) {
+              System.out.println(line);
+          }
+          input.close();
+      }
+
     static void newFile(String Name, String FileType, String Text, String GUID, boolean setActive) {
         noDialogue = false;
         Project p = ProjectManager.getInstance().getOpenProjects()[0];
         final FileEditorManager fileEditorManager = FileEditorManager.getInstance(p);  // FIXME this is the wrong directory .idea
-
         WriteCommandAction.runWriteCommandAction(p, () -> {
             File d = createTempDir();
             assert d != null : "Could not create temporary directory";
             VirtualFile vdir = LocalFileSystem.getInstance().findFileByIoFile(d);
             Module module = ModuleManager.getInstance(p).getModules()[0];
+
+            try {
+                luaBundle();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
 
             boolean noroot = true;
             final VirtualFile[] roots = ModuleRootManager.getInstance(module).getContentRoots();
@@ -84,7 +105,7 @@ class createFile {
 
             // Adds temp folder to project TODO find out if you can remove content root on program close? Cleanup on startup?
 
-            PsiDirectory dir = PsiManager.getInstance(p).findDirectory(vdir);
+            dir = PsiManager.getInstance(p).findDirectory(vdir);
             assert dir != null : "Directory is null" ;
 
             filename = Name + " " + GUID + "." + FileType;
@@ -108,9 +129,9 @@ class createFile {
             replaceConfirmation.main(null); // This cannot run in WriteCommandAction, stops when dialogue is closed
             WriteCommandAction.runWriteCommandAction(p, () -> {
             if (replace) {
-                    foundFiles[0].delete(); // TODO ask if there is a replace instead of delete then recreate
+                    foundFiles[0].delete();
                     PsiFile newFile = (PsiFile) dir.add(file);
-                    gameSync.syncedFiles.putIfAbsent(filename, GUID);
+                    gameSync.syncedFiles.put(filename, GUID);
                     fileEditorManager.openFile(newFile.getVirtualFile(), true); // Always focuses regardless
             }
             else {
@@ -122,7 +143,7 @@ class createFile {
 }
 
 class gotoError {
-    static void main(String Text, String GUID, String Filetype, Project p, String errorPrefix) { // FIXME almost certainly will crash if objName has :( or ( - switch to regular expression (
+    static void main(String Text, String GUID, String Filetype, Project p, String errorPrefix) { // FIXME almost certainly will crash if objName has :( or ( - switch to regular expression. Also does not support XML?
         WriteCommandAction.runWriteCommandAction(p, () -> {
             String[] foundFiles = FilenameIndex.getAllFilenames(p); // We have to do this since the GUID is only partially the filename. The GUID is always unique.
             java.util.regex.Pattern c = java.util.regex.Pattern.compile(GUID + Filetype); // Found the GUID with the given extension

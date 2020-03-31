@@ -1,6 +1,7 @@
 plugins {
     id 'java'
-    id 'org.jetbrains.intellij' version '0.4.10'
+    id 'org.jetbrains.intellij' version '0.4.17'
+    id "de.undercouch.download" version "3.4.3"
 }
 
 group 'com.tts'
@@ -29,4 +30,19 @@ patchPluginXml {
     changeNotes """ 
       Add change notes here.<br>
       <em>most HTML tags may be used</em>"""
+}
+
+
+task downloadLuaBundler(type: Download) {
+    src ([
+            "https://github.com/Skeeve2/luabundler/releases/download/v1.2.0/luabundler.exe",
+    ])
+    dest "luabundler.exe"
+}
+
+task installLuaBundler(type: Copy, dependsOn: downloadLuaBundler) {
+    from("luabundler.exe") {
+        into "luabundler/"
+    }
+    destinationDir file("src/main/resources")
 }
