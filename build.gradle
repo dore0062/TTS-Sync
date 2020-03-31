@@ -42,6 +42,7 @@ task downloadLuaBundler(type: Download) {
 
 task installLuaBundler(type: Copy, dependsOn: downloadLuaBundler) {
     from("luabundler.exe") {
+        include "luabundler.exe"
         into "luabundler/"
     }
     destinationDir file("src/main/resources")
